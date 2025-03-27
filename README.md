@@ -88,6 +88,5 @@ For support, please open an issue in the GitHub repository or contact the mainta
 
 ## Acknowledgments
 - GitHub API
-- MongoDB Team
-- Socket.IO Team
-- All contributors and users of this project
+- MongoDB
+- Socket.IO
