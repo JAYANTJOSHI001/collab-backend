@@ -4,22 +4,68 @@ const { isAuthenticated } = require('../middleware/auth');
 const Room = require('../models/room.model');
 const { Octokit } = require('@octokit/rest');
 
+// Get all rooms
+router.get('/', isAuthenticated, async (req, res) => {
+  try {
+    const rooms = await Room.find({ createdBy: req.user.username })
+      .sort({ createdAt: -1 })
+      .select('-files');
+    
+    console.log('[GET /room] Fetched rooms for user:', {
+      username: req.user.username,
+      roomCount: rooms.length
+    });
+    
+    res.json(rooms);
+  } catch (error) {
+    console.error('[GET /room] Error fetching rooms:', {
+      error: error.message,
+      stack: error.stack,
+      user: req.user.username
+    });
+    res.status(500).json({ error: 'Failed to fetch rooms' });
+  }
+});
+
 // Create a new room
 router.post('/create', isAuthenticated, async (req, res) => {
   try {
     const { name, repo, githubUsername } = req.body;
+
+    // Check if a room already exists for this repo
+    const existingRoom = await Room.findOne({ repo });
+    if (existingRoom) {
+      console.log('[POST /room/create] Room already exists for repo:', {
+        repo,
+        existingRoomId: existingRoom._id
+      });
+      // Return the complete existing room details instead of just the ID
+      return res.status(200).json(
+        // error: 'A room already exists for this repository',
+        existingRoom 
+      );
+    }
+
     const room = new Room({
       name,
       repo,
       createdBy: req.user.username,
       githubUsername,
-      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
+      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
       lastActivity: new Date()
     });
 
     const savedRoom = await room.save();
+    console.log('[POST /room/create] New room created:', {
+      roomId: savedRoom._id,
+      repo
+    });
     res.status(201).json(savedRoom);
   } catch (error) {
+    console.error('[POST /room/create] Error:', {
+      error: error.message,
+      stack: error.stack
+    });
     res.status(500).json({ error: 'Failed to create room' });
   }
 });

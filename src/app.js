@@ -44,11 +44,12 @@ app.use((req, res, next) => {
 });
 
 // CORS configuration
+// Add after creating the app
 app.use(cors({
   origin: process.env.CLIENT_URL || 'http://localhost:3000',
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
 // Body parser middleware
@@ -111,4 +112,4 @@ process.on('SIGINT', () => {
   });
 });
 
-module.exports = app; 
+module.exports = app;
