@@ -7,6 +7,7 @@ const passport = require('passport');
 const MongoStore = require('connect-mongo');
 const { createServer } = require('http');
 const { Server } = require('socket.io');
+const fileRoutes = require('./routes/file.routes');
 
 // Import routes
 const authRoutes = require('./routes/auth.routes');
@@ -79,6 +80,9 @@ app.use(passport.session());
 app.use('/auth', authRoutes);
 app.use('/room', roomRoutes);
 app.use('/user', userRoutes);
+
+// Add file routes
+app.use('/api/file', fileRoutes);
 
 // Health check
 app.get('/health', (req, res) => {

@@ -3,6 +3,7 @@ const Room = require('../models/room.model');
 module.exports = (io) => {
   // Store active rooms
   const activeRooms = new Map();
+  const roomChats = new Map();
   
   // Debounce timers for code changes
   const debounceTimers = new Map();
@@ -52,10 +53,66 @@ module.exports = (io) => {
           cursors: Array.from(room.cursors.entries()),
           selections: Array.from(room.selections.entries())
         });
+        const chatHistory = roomChats.get(roomId) || [];
+        socket.emit('chatHistory', chatHistory)
       } catch (error) {
         console.error('Join room error:', error);
         socket.emit('error', 'Failed to join room');
       }
+    });
+
+    socket.on('sendChatMessage', (messageData) => {
+      const roomId = messageData.roomId || socket.roomId;
+      if (!roomId) {
+        console.log('❌ [Socket] Cannot send chat message: No room ID provided');
+        return;
+      }
+  
+      console.log('📨 [Socket] Chat message received:', {
+        roomId,
+        sender: messageData.sender?.name || 'Unknown',
+        contentLength: messageData.content?.length || 0
+      });
+  
+      // Initialize chat history for room if it doesn't exist
+      if (!roomChats.has(roomId)) {
+        roomChats.set(roomId, []);
+      }
+  
+      // Add timestamp if not provided
+      const message = {
+        ...messageData,
+        timestamp: messageData.timestamp || new Date()
+      };
+  
+      // Store message in memory
+      roomChats.get(roomId).push(message);
+      
+      // Limit history to last 100 messages
+      if (roomChats.get(roomId).length > 100) {
+        roomChats.set(roomId, roomChats.get(roomId).slice(-100));
+      }
+  
+      // Broadcast to all clients in the room except sender
+      socket.to(roomId).emit('chatMessage', message);
+      
+      console.log('✅ [Socket] Chat message broadcast to room:', roomId);
+    });
+  
+    // Handle requests for chat history
+    socket.on('getChatHistory', ({ roomId }) => {
+      if (!roomId) {
+        console.log('❌ [Socket] Cannot get chat history: No room ID provided');
+        return;
+      }
+  
+      const history = roomChats.get(roomId) || [];
+      console.log('📚 [Socket] Sending chat history:', {
+        roomId,
+        messageCount: history.length
+      });
+      
+      socket.emit('chatHistory', history);
     });
 
     // Handle code changes with debouncing
