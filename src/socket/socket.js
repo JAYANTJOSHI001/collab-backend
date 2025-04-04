@@ -203,6 +203,79 @@ module.exports = (io) => {
       });
     });
 
+    // Add this to your existing socket.js file in the ai:request handler
+    
+    socket.on('ai:request', async (data) => {
+      const { roomId, userId, requestType, code, language, cursorPosition, error, prompt } = data;
+      
+      try {
+        let response;
+        
+        switch (requestType) {
+          case 'suggest':
+            // Call AI controller for suggestions using Hugging Face
+            response = await fetch(`${process.env.API_URL}/api/ai/suggest`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ code, language, cursorPosition })
+            }).then(res => res.json());
+            break;
+            
+          case 'debug':
+            response = await fetch(`${process.env.API_URL}/api/ai/debug`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ code, language, error })
+            }).then(res => res.json());
+            break;
+            
+          case 'optimize':
+            response = await fetch(`${process.env.API_URL}/api/ai/optimize`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ code, language })
+            }).then(res => res.json());
+            break;
+            
+          case 'explain':
+            response = await fetch(`${process.env.API_URL}/api/ai/explain`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ code, language })
+            }).then(res => res.json());
+            break;
+            
+          case 'gemini':
+            response = await fetch(`${process.env.API_URL}/api/ai/gemini`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ 
+                prompt, 
+                language,
+                context: code // Pass the current code as context
+              })
+            }).then(res => res.json());
+            break;
+            
+          default:
+            throw new Error('Invalid request type');
+        }
+        
+        // Emit the response back to the room
+        io.to(roomId).emit('ai:response', {
+          userId,
+          requestType,
+          response
+        });
+      } catch (error) {
+        console.error('AI request error:', error);
+        socket.emit('ai:error', {
+          message: 'Failed to process AI request',
+          error: error.message
+        });
+      }
+    });
+
     // Handle disconnection
     socket.on('disconnect', () => {
       const roomId = socket.roomId;
@@ -228,4 +301,4 @@ module.exports = (io) => {
       }
     });
   });
-}; 
+};

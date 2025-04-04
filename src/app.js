@@ -13,6 +13,7 @@ const fileRoutes = require('./routes/file.routes');
 const authRoutes = require('./routes/auth.routes');
 const roomRoutes = require('./routes/room.routes');
 const userRoutes = require('./routes/user.routes');
+const aiRoutes = require('./routes/ai.routes');
 
 // Import socket handler
 const setupSocket = require('./socket/socket');
@@ -80,9 +81,8 @@ app.use(passport.session());
 app.use('/auth', authRoutes);
 app.use('/room', roomRoutes);
 app.use('/user', userRoutes);
-
-// Add file routes
 app.use('/api/file', fileRoutes);
+app.use('/api/ai', aiRoutes);
 
 // Health check
 app.get('/health', (req, res) => {
@@ -107,7 +107,6 @@ const PORT = process.env.PORT || 4000;
 httpServer.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
-
 // Handle process termination
 process.on('SIGINT', () => {
   mongoose.connection.close(() => {
